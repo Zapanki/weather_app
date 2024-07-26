@@ -20,11 +20,14 @@ class _HomePageState extends State<HomePage> {
   final WeatherService _weatherService = WeatherService(apiKey: OPENWEATHER_API_KEY);
   Weather? _weather;
   List<dynamic>? _hourlyForecast;
+  List<dynamic>? _weeklyForecast;
+  String _selectedCity = "London";
+  List<String> _cities = ["My Location", "Thessaloniki", "New York", "London", "Tokyo", "Sydney", "Neos Marmaras","Rostov-on-Don"];
 
   @override
   void initState() {
     super.initState();
-    _fetchWeather("Thessaloniki");
+    _fetchWeather(_selectedCity);
   }
 
   Future<void> _fetchWeather(String cityName) async {
@@ -32,9 +35,11 @@ class _HomePageState extends State<HomePage> {
       Weather weather = await _wf.currentWeatherByCityName(cityName);
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       final hourlyForecast = await _weatherService.getHourlyForecast(weather.latitude!, weather.longitude!);
+      // final weeklyForecast = await _weatherService.getWeeklyForecast(weather.latitude!, weather.longitude!);
       setState(() {
         _weather = weather;
         _hourlyForecast = hourlyForecast['list'];
+        // _weeklyForecast = weeklyForecast['daily'];
       });
     } catch (e) {
       print('Failed to fetch weather: $e');
@@ -47,9 +52,11 @@ class _HomePageState extends State<HomePage> {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       final weather = await _wf.currentWeatherByLocation(position.latitude, position.longitude);
       final hourlyForecast = await _weatherService.getHourlyForecast(position.latitude, position.longitude);
+      // final weeklyForecast = await _weatherService.getWeeklyForecast(position.latitude, position.longitude);
       setState(() {
         _weather = weather;
         _hourlyForecast = hourlyForecast['list'];
+        // _weeklyForecast = weeklyForecast['daily'];
       });
     } catch (e) {
       print('Failed to fetch weather by location: $e');
@@ -81,7 +88,7 @@ class _HomePageState extends State<HomePage> {
     final selectedCity = await showDialog<String>(
       context: context,
       builder: (context) => CitySelectionDialog(
-        cities: ["My Location", "Thessaloniki", "New York", "London", "Tokyo", "Sydney"],
+        cities: _cities,
         onSelectedCity: (city) {
           if (city == "My Location") {
             _fetchWeatherByLocation();
@@ -92,10 +99,15 @@ class _HomePageState extends State<HomePage> {
       ),
     );
 
-    if (selectedCity == "My Location") {
-      await _fetchWeatherByLocation();
-    } else if (selectedCity != null) {
-      await _fetchWeather(selectedCity);
+    if (selectedCity != null) {
+      setState(() {
+        _selectedCity = selectedCity;
+      });
+      if (selectedCity == "My Location") {
+        await _fetchWeatherByLocation();
+      } else {
+        await _fetchWeather(selectedCity);
+      }
     }
   }
 
@@ -115,6 +127,66 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _searchCityField() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: DropdownButton<String>(
+        value: _selectedCity,
+        icon: const Icon(Icons.arrow_downward),
+        iconSize: 24,
+        elevation: 16,
+        style: const TextStyle(color: Colors.deepPurple),
+        underline: Container(
+          height: 2,
+          color: Colors.deepPurpleAccent,
+        ),
+        onChanged: (String? newValue) {
+          setState(() {
+            _selectedCity = newValue!;
+          });
+          if (newValue == "My Location") {
+            _fetchWeatherByLocation();
+          } else {
+            // _fetchWeather(newValue);
+          }
+        },
+        items: _cities.map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _weatherItem(String label, String value, String asset) {
+    return Column(
+      children: [
+        Lottie.asset(
+          asset,
+          width: 50,
+          height: 50,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildUI() {
     return SingleChildScrollView(
       child: Column(
@@ -128,24 +200,16 @@ class _HomePageState extends State<HomePage> {
               height: MediaQuery.of(context).size.height * 0.05,
             ),
             _hourlyForecastSection(),
+            _weeklyForecastSection(),
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.05,
+            ),
+            
           ] else
             const Center(
               child: CircularProgressIndicator(),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _searchCityField() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: TextField(
-        onSubmitted: (value) => _fetchWeather(value),
-        decoration: InputDecoration(
-          hintText: "Search city",
-          prefixIcon: Icon(Icons.search),
-        ),
       ),
     );
   }
@@ -213,6 +277,19 @@ class _HomePageState extends State<HomePage> {
             fontWeight: FontWeight.w500,
           ),
         ),
+        SizedBox(height: 10),
+        Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _weatherItem("Wind Speed", "${_weather?.windSpeed?.toStringAsFixed(0)} km/h", 'assets/animations/wind.json'),
+                  _weatherItem("Humidity", "${_weather?.humidity?.toStringAsFixed(0)}%", 'assets/animations/humidity.json'),
+                  _weatherItem("Max Temp", "${_weather?.tempMax?.celsius?.toStringAsFixed(0)}°C", 'assets/animations/max_temp.json'),
+                ],
+              ),
+            ),
+        SizedBox(height: 10),
         Text(
           "Feels like: ${_weather?.tempFeelsLike?.celsius?.toStringAsFixed(0)}°C",
           style: const TextStyle(
@@ -278,6 +355,47 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+  Widget _weeklyForecastSection() {
+    if (_weeklyForecast == null) {
+      return Center(child: CircularProgressIndicator());
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Weekly Forecast",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 10),
+        Container(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _weeklyForecast!.length,
+            itemBuilder: (context, index) {
+              final forecast = _weeklyForecast![index];
+              return Container(
+                width: 80,
+                child: Column(
+                  children: [
+                    Text(DateFormat("dd").format(DateTime.fromMillisecondsSinceEpoch(forecast['dt'] * 1000))),
+                    SizedBox(height: 5),
+                    Lottie.asset(
+                      _getLottieAnimation(forecast['weather'][0]['description']),
+                      width: 50,
+                      height: 50,
+                    ),
+                    SizedBox(height: 5),
+                    Text("${forecast['main']['temp'].toStringAsFixed(0)}°C"),
+                  ],
+                ),
+              );
+            },
+          ), 
         ),
       ],
     );
