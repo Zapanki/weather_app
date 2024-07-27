@@ -17,12 +17,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final WeatherFactory _wf = WeatherFactory(OPENWEATHER_API_KEY);
-  final WeatherService _weatherService = WeatherService(apiKey: OPENWEATHER_API_KEY);
+  final WeatherService _weatherService =
+      WeatherService(apiKey: OPENWEATHER_API_KEY);
   Weather? _weather;
   List<dynamic>? _hourlyForecast;
-  List<dynamic>? _weeklyForecast;
+  // List<dynamic>? _weeklyForecast;
   String _selectedCity = "London";
-  List<String> _cities = ["My Location", "Thessaloniki", "New York", "London", "Tokyo", "Sydney", "Neos Marmaras","Rostov-on-Don"];
+  List<String> _cities = [
+    "My Location",
+    "Thessaloniki",
+    "New York",
+    "London",
+    "Tokyo",
+    "Sydney",
+    "Neos Marmaras",
+    "Rostov-on-Don"
+  ];
 
   @override
   void initState() {
@@ -33,8 +43,10 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchWeather(String cityName) async {
     try {
       Weather weather = await _wf.currentWeatherByCityName(cityName);
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      final hourlyForecast = await _weatherService.getHourlyForecast(weather.latitude!, weather.longitude!);
+      final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final hourlyForecast = await _weatherService.getHourlyForecast(
+          weather.latitude!, weather.longitude!);
       // final weeklyForecast = await _weatherService.getWeeklyForecast(weather.latitude!, weather.longitude!);
       setState(() {
         _weather = weather;
@@ -43,15 +55,19 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (e) {
       print('Failed to fetch weather: $e');
-      _showErrorDialog('Failed to fetch weather. Please check your API key and try again.');
+      _showErrorDialog(
+          'Failed to fetch weather. Please check your API key and try again.');
     }
   }
 
   Future<void> _fetchWeatherByLocation() async {
     try {
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      final weather = await _wf.currentWeatherByLocation(position.latitude, position.longitude);
-      final hourlyForecast = await _weatherService.getHourlyForecast(position.latitude, position.longitude);
+      final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final weather = await _wf.currentWeatherByLocation(
+          position.latitude, position.longitude);
+      final hourlyForecast = await _weatherService.getHourlyForecast(
+          position.latitude, position.longitude);
       // final weeklyForecast = await _weatherService.getWeeklyForecast(position.latitude, position.longitude);
       setState(() {
         _weather = weather;
@@ -60,7 +76,8 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (e) {
       print('Failed to fetch weather by location: $e');
-      _showErrorDialog('Failed to fetch weather by location. Please check your API key and try again.');
+      _showErrorDialog(
+          'Failed to fetch weather by location. Please check your API key and try again.');
     }
   }
 
@@ -116,12 +133,6 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: _searchCityField(),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.location_city),
-            onPressed: _selectCity,
-          ),
-        ],
       ),
       body: _buildUI(),
     );
@@ -147,7 +158,7 @@ class _HomePageState extends State<HomePage> {
           if (newValue == "My Location") {
             _fetchWeatherByLocation();
           } else {
-            // _fetchWeather(newValue);
+            _fetchWeather(newValue!);
           }
         },
         items: _cities.map<DropdownMenuItem<String>>((String value) {
@@ -200,11 +211,10 @@ class _HomePageState extends State<HomePage> {
               height: MediaQuery.of(context).size.height * 0.05,
             ),
             _hourlyForecastSection(),
-            _weeklyForecastSection(),
+            // _weeklyForecastSection(),
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.05,
             ),
-            
           ] else
             const Center(
               child: CircularProgressIndicator(),
@@ -279,35 +289,42 @@ class _HomePageState extends State<HomePage> {
         ),
         SizedBox(height: 10),
         Container(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Row(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            children: [
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _weatherItem("Wind Speed", "${_weather?.windSpeed?.toStringAsFixed(0)} km/h", 'assets/animations/wind.json'),
-                  _weatherItem("Humidity", "${_weather?.humidity?.toStringAsFixed(0)}%", 'assets/animations/humidity.json'),
-                  _weatherItem("Max Temp", "${_weather?.tempMax?.celsius?.toStringAsFixed(0)}°C", 'assets/animations/max_temp.json'),
+                  _weatherItem(
+                      "Wind Speed",
+                      "${_weather?.windSpeed?.toStringAsFixed(0)} km/h",
+                      'assets/animations/wind.json'),
+                  _weatherItem(
+                      "Humidity",
+                      "${_weather?.humidity?.toStringAsFixed(0)}%",
+                      'assets/animations/humidity.json'),
+                  _weatherItem(
+                      "Max Temp",
+                      "${_weather?.tempMax?.celsius?.toStringAsFixed(0)}°C",
+                      'assets/animations/max_temp.json'),
                 ],
               ),
-            ),
-        SizedBox(height: 10),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _weatherItem("Sunrise", "${DateFormat('HH:mm').format(DateTime.parse(_weather?.sunrise.toString() ?? ""))}",
+                      'assets/animations/sunrise.json'),
+                  _weatherItem("Sunset", "${DateFormat('HH:mm').format(DateTime.parse(_weather?.sunset.toString() ?? ""))}",
+                      'assets/animations/sunset.json'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 30),
         Text(
           "Feels like: ${_weather?.tempFeelsLike?.celsius?.toStringAsFixed(0)}°C",
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Text(
-          "Wind: ${_weather?.windSpeed?.toStringAsFixed(0)} m/s",
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Text(
-          "Max: ${_weather?.tempMax?.celsius?.toStringAsFixed(0)}°C, Min: ${_weather?.tempMin?.celsius?.toStringAsFixed(0)}°C",
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -318,6 +335,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  
+
   Widget _hourlyForecastSection() {
     if (_hourlyForecast == null) {
       return Center(child: CircularProgressIndicator());
@@ -326,7 +345,7 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Hourly Forecast",
+          "3 Hour Forecast",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 10),
@@ -341,10 +360,13 @@ class _HomePageState extends State<HomePage> {
                 width: 80,
                 child: Column(
                   children: [
-                    Text(DateFormat("HH:mm").format(DateTime.fromMillisecondsSinceEpoch(forecast['dt'] * 1000))),
+                    Text(DateFormat("HH:mm").format(
+                        DateTime.fromMillisecondsSinceEpoch(
+                            forecast['dt'] * 1000))),
                     SizedBox(height: 5),
                     Lottie.asset(
-                      _getLottieAnimation(forecast['weather'][0]['description']),
+                      _getLottieAnimation(
+                          forecast['weather'][0]['description']),
                       width: 50,
                       height: 50,
                     ),
@@ -359,47 +381,51 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
-  Widget _weeklyForecastSection() {
-    if (_weeklyForecast == null) {
-      return Center(child: CircularProgressIndicator());
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Weekly Forecast",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 10),
-        Container(
-          height: 100,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _weeklyForecast!.length,
-            itemBuilder: (context, index) {
-              final forecast = _weeklyForecast![index];
-              return Container(
-                width: 80,
-                child: Column(
-                  children: [
-                    Text(DateFormat("dd").format(DateTime.fromMillisecondsSinceEpoch(forecast['dt'] * 1000))),
-                    SizedBox(height: 5),
-                    Lottie.asset(
-                      _getLottieAnimation(forecast['weather'][0]['description']),
-                      width: 50,
-                      height: 50,
-                    ),
-                    SizedBox(height: 5),
-                    Text("${forecast['main']['temp'].toStringAsFixed(0)}°C"),
-                  ],
-                ),
-              );
-            },
-          ), 
-        ),
-      ],
-    );
-  }
+
+  // Widget _weeklyForecastSection() {
+  //   if (_weeklyForecast == null) {
+  //     return Center(child: CircularProgressIndicator());
+  //   }
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Weekly Forecast",
+  //         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  //       ),
+  //       SizedBox(height: 10),
+  //       Container(
+  //         height: 100,
+  //         child: ListView.builder(
+  //           scrollDirection: Axis.horizontal,
+  //           itemCount: _weeklyForecast!.length,
+  //           itemBuilder: (context, index) {
+  //             final forecast = _weeklyForecast![index];
+  //             return Container(
+  //               width: 80,
+  //               child: Column(
+  //                 children: [
+  //                   Text(DateFormat("dd").format(
+  //                       DateTime.fromMillisecondsSinceEpoch(
+  //                           forecast['dt'] * 1000))),
+  //                   SizedBox(height: 5),
+  //                   Lottie.asset(
+  //                     _getLottieAnimation(
+  //                         forecast['weather'][0]['description']),
+  //                     width: 50,
+  //                     height: 50,
+  //                   ),
+  //                   SizedBox(height: 5),
+  //                   Text("${forecast['main']['temp'].toStringAsFixed(0)}°C"),
+  //                 ],
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   String _getLottieAnimation(String? weatherDescription) {
     if (weatherDescription == null) {
